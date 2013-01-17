@@ -1,0 +1,23 @@
+Auth Cookie Storage class for Zend Framework 1.x
+
+The class provides Identity storage on client side by implementing standard Zend_Auth_Storage_Interface.
+
+Features
+
+* For shared-nothing architectures
+* 128, 256, ... bit encryption
+* Public key expires on browser close
+
+Requires
+
+* PHP 5
+* Zend Framework 1.x
+* Mcrypt
+
+Usage
+
+The line
+    Zend_Auth::getInstance()->setStorage(new Auth_Storage_Cookie($secret));
+replaces default Session storage in your application. See use case in the demo folder.
+
+
