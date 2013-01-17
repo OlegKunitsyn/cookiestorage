@@ -77,7 +77,7 @@ class Auth_Storage_Cookie implements Zend_Auth_Storage_Interface
     protected $_valueCookieName = null;
     
     /**
-     * Name of the cookie for the value
+     * Cipher
      *
      * @var string
      */
@@ -89,6 +89,7 @@ class Auth_Storage_Cookie implements Zend_Auth_Storage_Interface
      * @param  string $secretKey
      * @param  string $keyCookieName
      * @param  string $valueCookieName
+	 * @param  string $cipher
      * @return void
      */
     public function __construct($secretKey, 
@@ -119,7 +120,7 @@ class Auth_Storage_Cookie implements Zend_Auth_Storage_Interface
                 MCRYPT_RAND
             );
             $_COOKIE[$this->_keyCookieName] = base64_encode($this->_publicKey);
-            @setcookie($this->_keyCookieName, base64_encode($this->_publicKey), 0, '/', '', false, true);
+            setcookie($this->_keyCookieName, base64_encode($this->_publicKey), 0, '/', '', false, true);
         }
         
         // Retrieve data
@@ -206,7 +207,7 @@ class Auth_Storage_Cookie implements Zend_Auth_Storage_Interface
         }
         $this->_cookie = $contents;
         $_COOKIE[$this->_valueCookieName] = $encryptedContents;
-        @setcookie($this->_valueCookieName, $encryptedContents, 0, '/', '', false, true);
+        setcookie($this->_valueCookieName, $encryptedContents, 0, '/', '', false, true);
     }
     /**
      * Defined by Zend_Auth_Storage_Interface
@@ -217,6 +218,6 @@ class Auth_Storage_Cookie implements Zend_Auth_Storage_Interface
     {
         $this->_cookie = null;
         unset($_COOKIE[$this->_valueCookieName]);
-        @setcookie($this->_valueCookieName, '', 1, '/', '', false, true);
+        setcookie($this->_valueCookieName, '', 1, '/', '', false, true);
     }
 }

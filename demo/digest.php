@@ -27,10 +27,5 @@ $result = $auth->authenticate($adapter);
 if ($result->isValid()) {
     $auth->getStorage()->write($username);
     echo "Welcome, {$username}!.. Please reload the page";
-} else {
-    echo "Failed login";
-    foreach ($auth->getMessages() as $message)
-        echo "$message\n";
 }
-
 
