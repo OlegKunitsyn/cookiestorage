@@ -89,7 +89,7 @@ class Auth_Storage_Cookie implements Zend_Auth_Storage_Interface
      * @param  string $secretKey
      * @param  string $keyCookieName
      * @param  string $valueCookieName
-	 * @param  string $cipher
+     * @param  string $cipher
      * @return void
      */
     public function __construct($secretKey, 
@@ -105,7 +105,9 @@ class Auth_Storage_Cookie implements Zend_Auth_Storage_Interface
         // Retrieve public key
         if (!empty($_COOKIE[$this->_keyCookieName])) {
             try {
-                $this->_publicKey = base64_decode($_COOKIE[$this->_keyCookieName]);
+                $this->_publicKey = base64_decode(
+                    $_COOKIE[$this->_keyCookieName]
+                );
             } catch (Exception $exception) {
                 $this->_publicKey = null;
                 require_once 'Zend/Auth/Storage/Exception.php';
@@ -120,7 +122,15 @@ class Auth_Storage_Cookie implements Zend_Auth_Storage_Interface
                 MCRYPT_RAND
             );
             $_COOKIE[$this->_keyCookieName] = base64_encode($this->_publicKey);
-            setcookie($this->_keyCookieName, base64_encode($this->_publicKey), 0, '/', '', false, true);
+            setcookie(
+                $this->_keyCookieName,
+                base64_encode($this->_publicKey),
+                0,
+                '/',
+                '',
+                false,
+                true
+            );
         }
         
         // Retrieve data
@@ -202,12 +212,22 @@ class Auth_Storage_Cookie implements Zend_Auth_Storage_Interface
     {
         try {
             $encryptedContents = $this->_encrypt($contents);
-        } catch (Exception $e) {
+        } catch (Exception $exception) {
             $encryptedContents = $contents = null;
+            require_once 'Zend/Auth/Storage/Exception.php';
+            throw new Zend_Auth_Storage_Exception($exception);
         }
         $this->_cookie = $contents;
         $_COOKIE[$this->_valueCookieName] = $encryptedContents;
-        setcookie($this->_valueCookieName, $encryptedContents, 0, '/', '', false, true);
+        setcookie(
+            $this->_valueCookieName,
+            $encryptedContents,
+            0,
+            '/',
+            '',
+            false,
+            true
+        );
     }
     /**
      * Defined by Zend_Auth_Storage_Interface
