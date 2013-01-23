@@ -10,17 +10,25 @@ require_once dirname(__FILE__) . '/../Cookie.php';
 class Auth_Storage_CookieTest extends PHPUnit_Framework_TestCase
 {
     protected $_object;
+    protected $_privateKey = 'T2%y,ttNyo.Su0{xT2%y,ttNyo.Su0{x';
     protected function setUp()
     {
-        $privateKey = 'T2%y,ttNyo.Su0{xT2%y,ttNyo.Su0{x';
         $_COOKIE = array(
-            'k' => 'DLpKJGEMwQY0YBpfq387t3GyjhiswfsHBfPpjqMSQjQ=',
-            'v' => 'eJxjMtsf8FR0vXaToe6G3DrhPdsTzCP4dp5ouy0SF9VfIG4JANclDRc=',
+            'k' => 'gWkeDPvmN2plYdMrxgG7NaZvNvAP0Q1FhtKHmxaYbds=',
+            'v' => 'eJwBQAC//4Mv8bHWB/+hFeHdLTmP9shrUCm4ZrFd765xQfdd1iTh3wjgP/LUQECOnajL+BPbtTTQ7a3dj1p9g/8xGZrjemOaWiRy',
         );
-        $this->_object = new Auth_Storage_Cookie($privateKey, 'k', 'v', MCRYPT_RIJNDAEL_256);
+        $this->_object = new Auth_Storage_Cookie($this->_privateKey, 'k', 'v', MCRYPT_RIJNDAEL_256);
     }
     protected function tearDown()
     {
+    }
+    public function testInit()
+    {
+        $_COOKIE = array();
+        $object = new Auth_Storage_Cookie($this->_privateKey);
+        $this->assertTrue($object->isEmpty());
+        $this->assertFalse(empty($_COOKIE['_k']));
+        $this->assertFalse(empty($_COOKIE['_v']));
     }
     public function testIsEmpty()
     {
@@ -44,6 +52,47 @@ class Auth_Storage_CookieTest extends PHPUnit_Framework_TestCase
     {
         $this->_object->clear();
         $this->assertTrue($this->_object->isEmpty());
+    }
+    public function testKeyLifetime()
+    {
+        // in range (0..3)s
+        $object = new Auth_Storage_Cookie($this->_privateKey, 'k', 'v', MCRYPT_RIJNDAEL_256, 2);
+        $object->write(-65535);
+        $this->assertEquals(-65535, $object->read());
+        $this->assertFalse($object->isEmpty());
+        sleep(1);
+        $object = new Auth_Storage_Cookie($this->_privateKey, 'k', 'v', MCRYPT_RIJNDAEL_256);
+        $this->assertEquals(-65535, $object->read());
+        $this->assertFalse($object->isEmpty());
+        
+        // out of range (0..1)s
+        $object = new Auth_Storage_Cookie($this->_privateKey, 'k', 'v', MCRYPT_RIJNDAEL_256, 0);
+        $object->write(-65535);
+        $this->assertEquals(-65535, $object->read());
+        $this->assertFalse($object->isEmpty());
+        sleep(1);
+        $object = new Auth_Storage_Cookie($this->_privateKey, 'k', 'v', MCRYPT_RIJNDAEL_256);
+        $this->assertEquals(null, $object->read());
+        $this->assertTrue($object->isEmpty());
+    }
+    public function testAlteredKey()
+    {
+        $this->setExpectedException('Zend_Auth_Storage_Exception');
+        $_COOKIE['k'] = '=====';
+        new Auth_Storage_Cookie($this->_privateKey, 'k', 'v', MCRYPT_RIJNDAEL_256);
+    }
+    public function testAlteredEncodedKey()
+    {
+        $this->setExpectedException('Zend_Auth_Storage_Exception');
+        $_COOKIE['k'] = base64_encode(base64_decode($_COOKIE['k']) . ':)');
+        new Auth_Storage_Cookie($this->_privateKey, 'k', 'v', MCRYPT_RIJNDAEL_256);
+    }
+    public function testSecretTooLong()
+    {
+        $privateKey = 'T2%y,ttNyo.Su0{xT2%y,ttNyo.Su0{xT2%y,ttNyo.Su0{xT2%y,ttNyo.Su0{x';
+        $this->setExpectedException('Zend_Auth_Storage_Exception');
+        $_COOKIE = array();
+        new Auth_Storage_Cookie($privateKey, 'k', 'v', MCRYPT_RIJNDAEL_256);
     }
 }
 

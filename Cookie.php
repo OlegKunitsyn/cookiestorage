@@ -7,7 +7,7 @@
  * @subpackage Zend_Auth_Storage
  * @copyright  Oleg Kunitsyn (https://github.com/OlegKunitsyn)
  * @license    Apache License
- * @version    $Rev 1.0$
+ * @version    $Rev 1.1$
  */
 
 /**
@@ -84,23 +84,34 @@ class Auth_Storage_Cookie implements Zend_Auth_Storage_Interface
     protected $_cipher = null;
     
     /**
+     * Lifetime of the public key
+     *
+     * @var int
+     */
+    protected $_keyLifetime = 0;
+    
+    /**
      * Initializes storage
      *
      * @param  string $secretKey
      * @param  string $keyCookieName
      * @param  string $valueCookieName
      * @param  string $cipher
+     * @param  int $keyLifetime
      * @return void
      */
     public function __construct($secretKey, 
         $keyCookieName = self::KEY_COOKIE_NAME_DEFAULT,
         $valueCookieName = self::VALUE_COOKIE_NAME_DEFAULT,
-        $cipher = self::CIPHER_DEFAULT)
+        $cipher = self::CIPHER_DEFAULT,
+        $keyLifetime = null)
     {
         $this->_secretKey = $secretKey;
         $this->_keyCookieName = $keyCookieName;
         $this->_valueCookieName = $valueCookieName;
         $this->_cipher = $cipher;
+        $this->_keyLifetime = ($keyLifetime !== null) ? 
+            $keyLifetime : (int) ini_get('session.gc_maxlifetime');
 
         // Retrieve public key
         if (!empty($_COOKIE[$this->_keyCookieName])) {
@@ -109,6 +120,28 @@ class Auth_Storage_Cookie implements Zend_Auth_Storage_Interface
                     $_COOKIE[$this->_keyCookieName]
                 );
             } catch (Exception $exception) {
+                $this->_publicKey = null;
+                require_once 'Zend/Auth/Storage/Exception.php';
+                throw new Zend_Auth_Storage_Exception($exception);
+            }
+        }
+        
+        // Retrieve data
+        if (!empty($_COOKIE[$this->_valueCookieName])) {
+            try {
+                $rawCookie = $this->_decrypt(
+                    $_COOKIE[$this->_valueCookieName]
+                );
+                // lifetime reached?
+                if (time() < $rawCookie[0]) {
+                    // no, accept data
+                    $this->_cookie = $rawCookie[1];
+                } else {
+                    // yes, invalidate public key
+                    $this->_publicKey = null;
+                }
+            } catch (Exception $exception) {
+                $this->_cookie = null;
                 $this->_publicKey = null;
                 require_once 'Zend/Auth/Storage/Exception.php';
                 throw new Zend_Auth_Storage_Exception($exception);
@@ -133,16 +166,8 @@ class Auth_Storage_Cookie implements Zend_Auth_Storage_Interface
             );
         }
         
-        // Retrieve data
-        if (empty($_COOKIE[$this->_valueCookieName]))
-            return;
-        try {
-            $this->_cookie = $this->_decrypt($_COOKIE[$this->_valueCookieName]);
-        } catch (Exception $exception) {
-            $this->_cookie = null;
-            require_once 'Zend/Auth/Storage/Exception.php';
-            throw new Zend_Auth_Storage_Exception($exception);
-        }
+        // refresh lifetime
+        $this->write($this->_cookie);
     }
     /**
      * Encrypt the string
@@ -211,7 +236,9 @@ class Auth_Storage_Cookie implements Zend_Auth_Storage_Interface
     public function write($contents)
     {
         try {
-            $encryptedContents = $this->_encrypt($contents);
+            $encryptedContents = $this->_encrypt(
+                array(time() + $this->_keyLifetime, $contents)
+            );
         } catch (Exception $exception) {
             $encryptedContents = $contents = null;
             require_once 'Zend/Auth/Storage/Exception.php';
