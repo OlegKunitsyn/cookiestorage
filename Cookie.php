@@ -146,6 +146,8 @@ class Auth_Storage_Cookie implements Zend_Auth_Storage_Interface
                 require_once 'Zend/Auth/Storage/Exception.php';
                 throw new Zend_Auth_Storage_Exception($exception);
             }
+        } else {
+            $this->_publicKey = null;
         }
         
         // Setup public key
